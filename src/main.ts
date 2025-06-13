@@ -10,6 +10,12 @@ class Game {
     private gameWidth: number = 400;
     private gameHeight: number = 600;
     private walls: PIXI.Graphics = new PIXI.Graphics();
+    private score: number = 0;
+    private scoreText: PIXI.Text = new PIXI.Text('Score: 0', {
+        fontFamily: 'Arial',
+        fontSize: 24,
+        fill: 0xFFFFFF,
+    });
 
     constructor() {
         this.app = new PIXI.Application({
@@ -24,22 +30,16 @@ class Game {
 
         this.createBackground();
         this.createWalls();
+        this.createScoreText();
         this.init();
         this.setupGameLoop();
     }
 
     private createBackground(): void {
-        // Создаем звёздное небо
-        const stars = new PIXI.Graphics();
-        for (let i = 0; i < 100; i++) {
-            const x = Math.random() * this.gameWidth;
-            const y = Math.random() * this.gameHeight;
-            const size = Math.random() * 2;
-            stars.beginFill(0xFFFFFF);
-            stars.drawCircle(x, y, size);
-            stars.endFill();
-        }
-        this.container.addChild(stars);
+        const background = PIXI.Sprite.from('assets/space/background.png');
+        background.width = this.gameWidth;
+        background.height = this.gameHeight;
+        this.container.addChild(background);
     }
 
     private createWalls(): void {
@@ -47,6 +47,12 @@ class Game {
         this.walls.lineStyle(2, 0x4444FF); // Синие стены
         this.walls.drawRect(0, 0, this.gameWidth, this.gameHeight);
         this.container.addChild(this.walls);
+    }
+
+    private createScoreText(): void {
+        this.scoreText.x = 10;
+        this.scoreText.y = 10;
+        this.container.addChild(this.scoreText);
     }
 
     private init(): void {
@@ -60,6 +66,15 @@ class Game {
         this.createNewObject();
     }
 
+    private getRandomBasicType(): SpaceObjectType {
+        const basicTypes = [
+            SpaceObjectType.METEOR,
+            SpaceObjectType.MARS,
+            SpaceObjectType.EARTH
+        ];
+        return basicTypes[Math.floor(Math.random() * basicTypes.length)];
+    }
+
     private createNewObject(): void {
         const x = this.gameWidth / 2;
         const y = 50;
@@ -67,9 +82,7 @@ class Game {
         this.currentObject.spaceObjects = this.spaceObjects; // Передаем список объектов
         this.container.addChild(this.currentObject.sprite);
         
-        // Выбираем следующий объект случайным образом
-        const types = Object.values(SpaceObjectType);
-        this.nextObjectType = types[Math.floor(Math.random() * types.length)];
+        this.nextObjectType = this.getRandomBasicType();
     }
 
     private onPointerDown(event: PIXI.FederatedPointerEvent): void {
@@ -91,6 +104,46 @@ class Game {
             this.spaceObjects.push(this.currentObject);
             this.createNewObject();
         }
+    }
+
+    private checkMerges(): void {
+        for (let i = 0; i < this.spaceObjects.length; i++) {
+            const obj1 = this.spaceObjects[i];
+            if (obj1.isMerging) continue;
+
+            for (let j = i + 1; j < this.spaceObjects.length; j++) {
+                const obj2 = this.spaceObjects[j];
+                if (obj2.isMerging) continue;
+
+                if (obj1.checkCollision(obj2) && obj1.canMerge(obj2)) {
+                    this.mergeObjects(obj1, obj2);
+                    break;
+                }
+            }
+        }
+    }
+
+    private mergeObjects(obj1: SpaceObject, obj2: SpaceObject): void {
+        const nextType = obj1.getNextType();
+        if (!nextType) return;
+
+        obj1.isMerging = true;
+        obj2.isMerging = true;
+
+        const x = (obj1.sprite.x + obj2.sprite.x) / 2;
+        const y = (obj1.sprite.y + obj2.sprite.y) / 2;
+
+        const newObject = new SpaceObject(nextType, x, y);
+        newObject.spaceObjects = this.spaceObjects;
+        this.container.addChild(newObject.sprite);
+
+        this.spaceObjects = this.spaceObjects.filter(obj => obj !== obj1 && obj !== obj2);
+        this.container.removeChild(obj1.sprite);
+        this.container.removeChild(obj2.sprite);
+
+        this.spaceObjects.push(newObject);
+        this.score += 10;
+        this.scoreText.text = `Score: ${this.score}`;
     }
 
     private setupGameLoop(): void {
@@ -116,6 +169,8 @@ class Game {
                     }
                 }
             });
+
+            this.checkMerges();
         });
     }
 }

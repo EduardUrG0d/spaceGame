@@ -19,6 +19,7 @@ export class SpaceObject {
     public rotation: number;
     public rotationSpeed: number;
     public spaceObjects?: SpaceObject[];
+    public isMerging: boolean = false;
 
     constructor(type: SpaceObjectType, x: number, y: number) {
         this.type = type;
@@ -44,6 +45,23 @@ export class SpaceObject {
         const typeOrder = Object.values(SpaceObjectType);
         const index = typeOrder.indexOf(type);
         return baseRadius * Math.pow(1.2, index); // Увеличиваем радиус на 20% для каждого следующего объекта
+    }
+
+    public checkCollision(other: SpaceObject): boolean {
+        const dx = this.sprite.x - other.sprite.x;
+        const dy = this.sprite.y - other.sprite.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        return distance < (this.radius + other.radius);
+    }
+
+    public canMerge(other: SpaceObject): boolean {
+        return this.type === other.type && !this.isMerging && !other.isMerging;
+    }
+
+    public getNextType(): SpaceObjectType | null {
+        const types = Object.values(SpaceObjectType);
+        const currentIndex = types.indexOf(this.type);
+        return currentIndex < types.length - 1 ? types[currentIndex + 1] : null;
     }
 
     public update(delta: number): void {
