@@ -1,6 +1,37 @@
 import * as PIXI from 'pixi.js';
 import { SpaceObject, SpaceObjectType } from './Fruit';
 
+const ASSETS = [
+    'assets/space/background.png',
+    'assets/space/meteor.png',
+    'assets/space/mars.png',
+    'assets/space/earth.png',
+    'assets/space/blue.png',
+    'assets/space/purple.png',
+    'assets/space/sunny.png',
+    'assets/space/blackHole.png',
+];
+
+function preloadAssets(onComplete: () => void) {
+    // @ts-ignore
+    const loader = PIXI.Loader.shared;
+    ASSETS.forEach(asset => loader.add(asset));
+    const loadingText = document.createElement('div');
+    loadingText.innerText = 'Загрузка...';
+    loadingText.style.position = 'absolute';
+    loadingText.style.top = '50%';
+    loadingText.style.left = '50%';
+    loadingText.style.transform = 'translate(-50%, -50%)';
+    loadingText.style.color = '#fff';
+    loadingText.style.fontSize = '32px';
+    loadingText.id = 'preloader';
+    document.body.appendChild(loadingText);
+    loader.load(() => {
+        document.getElementById('preloader')?.remove();
+        onComplete();
+    });
+}
+
 class Game {
     private app: PIXI.Application;
     private container: PIXI.Container;
@@ -226,5 +257,7 @@ class Game {
     }
 }
 
-// Запуск игры
-new Game(); 
+// Запуск с прелоадером
+preloadAssets(() => {
+    new Game();
+}); 
