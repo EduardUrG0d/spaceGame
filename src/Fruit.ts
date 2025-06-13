@@ -28,7 +28,7 @@ export class SpaceObject {
         this.rotationSpeed = (Math.random() - 0.5) * 0.02; // Случайное вращение
         
         // Создаем спрайт
-        this.sprite = PIXI.Sprite.from(`/src/assets/space/${type}.png`);
+        this.sprite = PIXI.Sprite.from(`assets/space/${type}.png`);
         this.sprite.anchor.set(0.5);
         this.sprite.x = x;
         this.sprite.y = y;
