@@ -26,6 +26,7 @@ export class SpaceObject {
     public isMerging: boolean = false;
     private imageData: ImageData | null = null;
     private canvas: HTMLCanvasElement | null = null;
+    public isReady: boolean = false;
 
     constructor(type: SpaceObjectType, x: number, y: number) {
         this.type = type;
@@ -71,6 +72,7 @@ export class SpaceObject {
         if (ctx) {
             ctx.drawImage(img, 0, 0, w, h);
             this.imageData = ctx.getImageData(0, 0, w, h);
+            this.isReady = true;
         }
     }
 
@@ -82,6 +84,7 @@ export class SpaceObject {
     }
 
     public checkCollision(other: SpaceObject): boolean {
+        if (!this.isReady || !other.isReady) return false;
         // Сначала быстрая проверка по окружностям
         const dx = this.sprite.x - other.sprite.x;
         const dy = this.sprite.y - other.sprite.y;
