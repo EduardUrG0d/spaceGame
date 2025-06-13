@@ -1,4 +1,5 @@
 import * as PIXI from 'pixi.js';
+import { Loader } from '@pixi/loaders';
 import { SpaceObject, SpaceObjectType } from './Fruit';
 
 const ASSETS = [
@@ -13,8 +14,7 @@ const ASSETS = [
 ];
 
 function preloadAssets(onComplete: () => void) {
-    // @ts-ignore
-    const loader = PIXI.Loader.shared;
+    const loader = Loader.shared;
     ASSETS.forEach(asset => loader.add(asset));
     const loadingText = document.createElement('div');
     loadingText.innerText = 'Загрузка...';
