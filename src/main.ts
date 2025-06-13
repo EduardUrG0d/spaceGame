@@ -16,6 +16,12 @@ class Game {
         fontSize: 24,
         fill: 0xFFFFFF,
     });
+    private gameOver: boolean = false;
+    private gameOverText: PIXI.Text = new PIXI.Text('GAME OVER', {
+        fontFamily: 'Arial',
+        fontSize: 48,
+        fill: 0xFF0000,
+    });
 
     constructor() {
         this.app = new PIXI.Application({
@@ -53,6 +59,12 @@ class Game {
         this.scoreText.x = 10;
         this.scoreText.y = 10;
         this.container.addChild(this.scoreText);
+
+        this.gameOverText.anchor.set(0.5);
+        this.gameOverText.x = this.gameWidth / 2;
+        this.gameOverText.y = this.gameHeight / 2;
+        this.gameOverText.visible = false;
+        this.container.addChild(this.gameOverText);
     }
 
     private init(): void {
@@ -86,38 +98,67 @@ class Game {
     }
 
     private onPointerDown(event: PIXI.FederatedPointerEvent): void {
-        if (this.currentObject) {
+        if (this.currentObject && !this.gameOver) {
             this.currentObject.velocity.x = 0;
             this.currentObject.velocity.y = 0;
         }
     }
 
     private onPointerMove(event: PIXI.FederatedPointerEvent): void {
-        if (this.currentObject) {
+        if (this.currentObject && !this.gameOver) {
             this.currentObject.sprite.x = Math.max(30, Math.min(this.gameWidth - 30, event.globalX));
         }
     }
 
     private onPointerUp(): void {
-        if (this.currentObject) {
+        if (this.currentObject && !this.gameOver) {
             this.currentObject.velocity.y = 5;
             this.spaceObjects.push(this.currentObject);
             this.createNewObject();
         }
     }
 
-    private checkMerges(): void {
+    private checkCollisions(): void {
         for (let i = 0; i < this.spaceObjects.length; i++) {
             const obj1 = this.spaceObjects[i];
-            if (obj1.isMerging) continue;
-
+            
+            // Проверка столкновения с другими объектами
             for (let j = i + 1; j < this.spaceObjects.length; j++) {
                 const obj2 = this.spaceObjects[j];
-                if (obj2.isMerging) continue;
-
-                if (obj1.checkCollision(obj2) && obj1.canMerge(obj2)) {
-                    this.mergeObjects(obj1, obj2);
-                    break;
+                
+                if (obj1.checkCollision(obj2)) {
+                    if (obj1.canMerge(obj2)) {
+                        this.mergeObjects(obj1, obj2);
+                        break;
+                    } else {
+                        // Физика столкновения
+                        const dx = obj2.sprite.x - obj1.sprite.x;
+                        const dy = obj2.sprite.y - obj1.sprite.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        const overlap = (obj1.radius + obj2.radius) - distance;
+                        
+                        if (overlap > 0) {
+                            const nx = dx / distance;
+                            const ny = dy / distance;
+                            
+                            // Разделяем объекты
+                            const moveX = nx * overlap * 0.5;
+                            const moveY = ny * overlap * 0.5;
+                            
+                            obj1.sprite.x -= moveX;
+                            obj1.sprite.y -= moveY;
+                            obj2.sprite.x += moveX;
+                            obj2.sprite.y += moveY;
+                            
+                            // Обмен скоростями
+                            const tempVx = obj1.velocity.x;
+                            const tempVy = obj1.velocity.y;
+                            obj1.velocity.x = obj2.velocity.x;
+                            obj1.velocity.y = obj2.velocity.y;
+                            obj2.velocity.x = tempVx;
+                            obj2.velocity.y = tempVy;
+                        }
+                    }
                 }
             }
         }
@@ -126,9 +167,6 @@ class Game {
     private mergeObjects(obj1: SpaceObject, obj2: SpaceObject): void {
         const nextType = obj1.getNextType();
         if (!nextType) return;
-
-        obj1.isMerging = true;
-        obj2.isMerging = true;
 
         const x = (obj1.sprite.x + obj2.sprite.x) / 2;
         const y = (obj1.sprite.y + obj2.sprite.y) / 2;
@@ -146,8 +184,20 @@ class Game {
         this.scoreText.text = `Score: ${this.score}`;
     }
 
+    private checkGameOver(): void {
+        for (const obj of this.spaceObjects) {
+            if (obj.sprite.y - obj.radius <= 0) {
+                this.gameOver = true;
+                this.gameOverText.visible = true;
+                break;
+            }
+        }
+    }
+
     private setupGameLoop(): void {
         this.app.ticker.add((delta) => {
+            if (this.gameOver) return;
+
             this.spaceObjects.forEach(object => {
                 object.update(delta);
 
@@ -170,7 +220,8 @@ class Game {
                 }
             });
 
-            this.checkMerges();
+            this.checkCollisions();
+            this.checkGameOver();
         });
     }
 }
