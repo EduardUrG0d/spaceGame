@@ -1,7 +1,7 @@
 {
-  "name": "suika-clone",
+  "name": "oi-io-space-merge-game",
   "version": "1.0.0",
-  "description": "Клон игры Suika с кастомными ассетами",
+  "description": "Oi_iO space merge game — аркадная игра-головоломка с космическими объектами.",
   "main": "index.js",
   "scripts": {
     "start": "vite",
